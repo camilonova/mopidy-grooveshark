@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+
+from urlparse import urlparse
 # import re
 # import string
 # from multiprocessing.pool import ThreadPool
@@ -17,10 +19,8 @@ import pykka
 # import requests
 from mopidy_grooveshark import logger
 
+from grooveshark import Client
 
-# yt_api_endpoint = 'https://www.googleapis.com/youtube/v3/'
-# yt_key = 'AIzaSyAl1Xq9DwdE_KD4AtPaE4EJl3WZe2zCqg4'
-# session = requests.Session()
 
 
 def resolve_track(track, stream=False):
@@ -64,7 +64,36 @@ def resolve_url(url, stream=False):
     track = Track(
         name=song.name,
         comment=song.artist.name,
-        length=song.duration,
+        length=song.duration * 1000,
+        album=Album(
+            name=song.album.name,
+            images=[song.album.cover._url]
+        ),
+        uri=song.stream.url,
+    )
+
+    return track
+
+
+def play_song_by_token(uri):
+    """
+    Play a song by its token.
+
+    http://grooveshark.com/#!/s/Because+Of+You/4DYDAi?src=5
+
+    Token: 4DYDAi
+    """
+    # Get token from uri
+    token = urlparse(uri).fragment.split('?')[0].split('/')[-1]
+
+    client = Client()
+    client.init()
+
+    song = client.get_song_by_token(token)
+    track = Track(
+        name=song.name,
+        comment=song.artist.name,
+        length=song.duration * 1000,
         album=Album(
             name=song.album.name,
             images=[song.album.cover._url]
@@ -148,10 +177,16 @@ class GroovesharkBackend(pykka.ThreadingActor, backend.Backend):
 
 
 class GroovesharkLibraryProvider(backend.LibraryProvider):
-    def lookup(self, track):
-        # maybe it needs grooveshark: too
-        if 'gs:' in track:
-            track = track.replace('gs:', '')
+    def lookup(self, uri):
+        # Clean the prefix
+        if uri.startswith('gs:'):
+            uri = uri[3:]
+        elif uri.startswith('grooveshark:'):
+            uri = uri[12:]
+
+        # TODO: know if is a song or a playlist
+        # supposing is a song
+        return [play_song_by_token(uri)]
 
         # we should parse the url to get the song token or playlist
 
@@ -165,7 +200,6 @@ class GroovesharkLibraryProvider(backend.LibraryProvider):
         # else:
         #     return [resolve_url(track)]
 
-        return [resolve_url(track)]
 
 #     def search(self, query=None, uris=None, exact=False):
 #         # TODO Support exact search
