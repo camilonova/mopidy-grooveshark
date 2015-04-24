@@ -1,8 +1,16 @@
 # mopidy-grooveshark
+
 Play music from Grooveshark on mopidy
 
-Seems package on pypi is outdated, we need to check first.
-pip install https://github.com/koehlma/pygrooveshark/archive/master.zip
+## Installation
 
-Install it from git
-pip install https://github.com/camilonova/mopidy-grooveshark/archive/master.zip
+Next install this extension from git.
+
+    pip install https://github.com/camilonova/mopidy-grooveshark/archive/master.zip
+
+## External libraries
+
+We are using pygrooveshark, is inside the project because the original repository
+is too big to clone.
+
+    https://github.com/koehlma/pygrooveshark
