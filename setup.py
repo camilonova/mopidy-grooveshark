@@ -18,7 +18,7 @@ setup(
     author='Camilo Nova',
     author_email='camilo.nova@gmail.com',
     description='Mopidy extension that plays sound from Grooveshark',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     packages=find_packages(exclude=['tests', 'tests.*']),
     zip_safe=False,
     include_package_data=True,
