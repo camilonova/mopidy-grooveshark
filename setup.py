@@ -13,7 +13,7 @@ def get_version(filename):
 setup(
     name='Mopidy-Grooveshark',
     version=get_version('mopidy_grooveshark/__init__.py'),
-    url='https://github.com/dz0ny/mopidy-grooveshark',
+    url='https://github.com/camilonova/mopidy-grooveshark',
     license='MIT',
     author='Camilo Nova',
     author_email='camilo.nova@gmail.com',

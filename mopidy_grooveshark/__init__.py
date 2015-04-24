@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class Extension(ext.Extension):
+
     dist_name = 'Mopidy-Grooveshark'
     ext_name = 'grooveshark'
     version = __version__
