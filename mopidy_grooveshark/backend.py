@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from urlparse import urlparse
 # import re
 # import string
-# from multiprocessing.pool import ThreadPool
+from multiprocessing.pool import ThreadPool
 # from urlparse import urlparse, parse_qs
 # import unicodedata
 
@@ -22,17 +22,77 @@ from mopidy_grooveshark import logger
 from grooveshark import Client
 
 
+def get_track(song):
+    """
+    Returns a Mopidy track from a Grooveshark song object.
+    """
+    return Track(
+        name=song.name,
+        comment=song.artist.name,
+        length=int(song.duration) * 1000,
+        album=Album(
+            name=song.album.name,
+            images=[song.album.cover._url]
+        ),
+        uri=song.stream.url,
+    )
 
+
+def play_a_song(uri):
+    """
+    Play a song from Grooveshark. Needs to have a token.
+
+    http://grooveshark.com/s/Because+Of+You/4DYDAi
+
+    Token: 4DYDAi
+    """
+    logger.debug("Playing Grooveshark Song '%s'", uri)
+
+    # Get token from uri
+    token = urlparse(uri).path.split('?')[0].split('/')[-1]
+
+    client = Client()
+    client.init()
+
+    song = client.get_song_by_token(token)
+
+    return get_track(song)
+
+
+def play_a_playlist(uri):
+    """
+    Play a playlist from Grooveshark.
+
+    http://grooveshark.com/playlist/Office+Hours+Jazz/19537110
+
+    Playlist ID: 19537110
+    """
+    logger.debug("Playing Grooveshark Song '%s'", uri)
+
+    # Get playlist_id from uri
+    playlist_id = urlparse(uri).path.split('?')[0].split('/')[-1]
+
+    client = Client()
+    client.init()
+
+    playlist = client.playlist(playlist_id)
+    resolve_pool = ThreadPool(processes=16)
+    playlist = resolve_pool.map(get_track, playlist.songs)
+    resolve_pool.close()
+
+    return playlist
+
+
+# FIXME: Seems is never used
 def resolve_track(track, stream=False):
     logger.debug("Resolving Grooveshark for track '%s'", track)
     if hasattr(track, 'uri'):
-        # FIXME: Seems is never used
         return resolve_url(track.comment, stream)
     else:
-        # return resolve_url(track.split('.')[-1], stream)
-        return resolve_url(track, stream)
+        return resolve_url(track.split('.')[-1], stream)
 
 
+# FIXME: Seems is never used
 def resolve_url(url, stream=False):
     # try:
     #     video = pafy.new(url)
@@ -73,48 +133,6 @@ def resolve_url(url, stream=False):
     )
 
     return track
-
-
-def play_song_by_token(uri):
-    """
-    Play a song by its token.
-
-    http://grooveshark.com/#!/s/Because+Of+You/4DYDAi?src=5
-
-    Token: 4DYDAi
-    """
-    # Get token from uri
-    token = urlparse(uri).fragment.split('?')[0].split('/')[-1]
-
-    client = Client()
-    client.init()
-
-    song = client.get_song_by_token(token)
-    track = Track(
-        name=song.name,
-        comment=song.artist.name,
-        length=song.duration * 1000,
-        album=Album(
-            name=song.album.name,
-            images=[song.album.cover._url]
-        ),
-        uri=song.stream.url,
-    )
-
-    return track
-
-
-# def safe_url(uri):
-#     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-#     safe_uri = unicodedata.normalize(
-#         'NFKD',
-#         unicode(uri)
-#     ).encode('ASCII', 'ignore')
-#     return re.sub(
-#         '\s+',
-#         ' ',
-#         ''.join(c for c in safe_uri if c in valid_chars)
-#     ).strip()
 
 
 # def search_youtube(q):
@@ -184,21 +202,15 @@ class GroovesharkLibraryProvider(backend.LibraryProvider):
         elif uri.startswith('grooveshark:'):
             uri = uri[12:]
 
-        # TODO: know if is a song or a playlist
-        # supposing is a song
-        return [play_song_by_token(uri)]
+        # Remove hashbang
+        if '/#!' in uri:
+            uri = uri.replace('/#!', '')
 
-        # we should parse the url to get the song token or playlist
-
-        # if 'youtube.com' in track:
-        #     url = urlparse(track)
-        #     req = parse_qs(url.query)
-        #     if 'list' in req:
-        #         return resolve_playlist(req.get('list')[0])
-        #     else:
-        #         return [resolve_url(track)]
-        # else:
-        #     return [resolve_url(track)]
+        # Play a song or playlist
+        if '//grooveshark.com/s/' in uri:
+            return [play_a_song(uri)]
+        elif '//grooveshark.com/playlist/' in uri:
+            return [play_a_playlist(uri)]
 
 
 #     def search(self, query=None, uris=None, exact=False):
@@ -233,6 +245,7 @@ class GroovesharkLibraryProvider(backend.LibraryProvider):
 #             )
 
 
+# TODO: Find when this is used
 class GroovesharkPlaybackProvider(backend.PlaybackProvider):
 
     def translate_uri(self, uri):
