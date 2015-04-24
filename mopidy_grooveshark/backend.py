@@ -67,7 +67,7 @@ def play_a_playlist(uri):
 
     Playlist ID: 19537110
     """
-    logger.debug("Playing Grooveshark Song '%s'", uri)
+    logger.debug("Playing Grooveshark Playlist '%s'", uri)
 
     # Get playlist_id from uri
     playlist_id = urlparse(uri).path.split('?')[0].split('/')[-1]
@@ -210,7 +210,7 @@ class GroovesharkLibraryProvider(backend.LibraryProvider):
         if '//grooveshark.com/s/' in uri:
             return [play_a_song(uri)]
         elif '//grooveshark.com/playlist/' in uri:
-            return [play_a_playlist(uri)]
+            return play_a_playlist(uri)
 
 
 #     def search(self, query=None, uris=None, exact=False):
