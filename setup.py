@@ -25,6 +25,7 @@ setup(
     install_requires=[
         'setuptools',
         'Mopidy >= 1.0',
+        'pygrooveshark >= 3.1',
     ],
     entry_points={
         'mopidy.ext': [
