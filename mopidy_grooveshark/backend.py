@@ -19,16 +19,25 @@ def get_track(song):
     """
     Returns a Mopidy track from a Grooveshark song object.
     """
-    return Track(
-        name=song.name,
-        comment=song.artist.name,
-        length=int(song.duration) * 1000,
-        album=Album(
-            name=song.album.name,
-            images=[song.album.cover._url]
-        ),
-        uri=song.stream.url,
-    )
+    try:
+        length = int(song.duration.split('.')[0]) * 1000
+        if length == 0:
+            logger.debug("Grooveshark report 0 duration for: %s", song)
+            return None
+
+        return Track(
+            name=song.name,
+            comment=song.artist.name,
+            length=length,
+            album=Album(
+                name=song.album.name,
+                images=[song.album.cover._url]
+            ),
+            uri=song.stream.url,
+        )
+    except TypeError:
+        logger.debug("Grooveshark API error for: %s", song)
+        return None
 
 
 def play_a_song(uri):
@@ -73,7 +82,7 @@ def play_a_playlist(uri):
     playlist = resolve_pool.map(get_track, playlist.songs)
     resolve_pool.close()
 
-    return playlist
+    return [song for song in playlist if song]
 
 
 def search_grooveshark(query):
@@ -89,7 +98,7 @@ def search_grooveshark(query):
     track_list = resolve_pool.map(get_track, client.search(query))
     resolve_pool.close()
 
-    return track_list
+    return [song for song in track_list if song]
 
 
 class GroovesharkBackend(pykka.ThreadingActor, backend.Backend):
